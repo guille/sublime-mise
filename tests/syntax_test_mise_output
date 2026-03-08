@@ -1,0 +1,54 @@
+# SYNTAX TEST "Packages/Mise/Mise Build.sublime-syntax"
+
+-- Available tasks:
+#<- meta.header.mise constant.other.mise
+#^^^^^^^^^^^^^^^^^^ meta.header.mise constant.other.mise
+
+check   Format & lint the code
+#<- variable.other.constant.mise
+#^^^^ variable.other.constant.mise
+#    ^^^ text.build.mise
+#       ^^^^^^^^^^^^^^^^^^^^^^ meta.description.mise
+
+-- Task to run? > check
+#<- meta.prompt.mise constant.other.mise
+#^^^^^^^^^^^^^^^^ meta.prompt.mise constant.other.mise
+#                 ^^^^^ meta.user-input.mise variable.other.constant.mise
+
+[lint] $ uv run ruff check
+#<- meta.brackets.mise punctuation.brackets.begin.mise
+#^^^^ variable.other.constant.mise
+#    ^ meta.brackets.mise punctuation.brackets.end.mise
+#     ^ text.build.mise -meta -variable
+#      ^ meta.shell.prompt.mise constant.other.mise
+#       ^ text.build.mise -meta -variable
+#        ^^^^^^^^^^^^^^^^^ text.shell.embedded.mise source.shell
+
+[lint] All checks passed!
+#<- meta.brackets.mise punctuation.brackets.begin.mise
+#^^^^ variable.other.constant.mise
+#    ^ meta.brackets.mise punctuation.brackets.end.mise
+#     ^^^^^^^^^^^^^^^^^^^ text.build.mise -meta -variable
+
+[lint] Finished in 42.3ms
+#<- meta.brackets.mise punctuation.brackets.begin.mise
+#^^^^ variable.other.constant.mise
+#    ^ meta.brackets.mise punctuation.brackets.end.mise
+#     ^ text.build.mise -meta -variable
+#      ^^^^^^^^^^^^^^^^^^ meta.runtime.mise
+#                  ^^^^ constant.numeric.mise
+#                    ^ punctuation.separator.decimal.mise
+#                      ^^ constant.numeric.suffix.mise
+
+Finished in 61ms
+#<- meta.runtime.mise
+#^^^^^^^^^^^^^^^ meta.runtime.mise
+#           ^^ constant.numeric.mise
+#             ^^ constant.numeric.suffix.mise
+
+[Finished in 2.5s]
+#<- meta.runtime.mise
+#^^^^^^^^^^^^^^^^^ meta.runtime.mise
+#            ^^^ constant.numeric.mise
+#             ^ punctuation.separator.decimal.mise
+#               ^ constant.numeric.suffix.mise

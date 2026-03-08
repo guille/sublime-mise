@@ -1,0 +1,62 @@
+%YAML 1.2
+---
+name: Mise build system output
+hidden: true
+scope: text.build.mise
+version: 2
+
+variables:
+  prompt: "--\\s+Task to run\\? >"
+  header: "--\\s+Available tasks:"
+  runtime: \[?Finished in (\d+(\.)?\d*)(\w+)\]?
+contexts:
+  main:
+    - match: "{{header}}"
+      scope: meta.header.mise constant.other.mise
+    - match: "{{prompt}}"
+      scope: meta.prompt.mise constant.other.mise
+      push: user-input
+    - include: runtime
+    - match: "\\["
+      scope: meta.brackets.mise punctuation.brackets.begin.mise
+      push: task-output-prefix
+    - match: \w+
+      scope: variable.other.constant.mise
+      push: task-description
+
+  task-description:
+    - match: "[ \\t]+(.*)"
+      captures:
+        1: meta.description.mise
+    - match: $\n?
+      pop: true
+
+  runtime:
+    - match: "{{runtime}}"
+      captures:
+        1: constant.numeric.mise
+        2: punctuation.separator.decimal.mise
+        3: constant.numeric.suffix.mise
+      scope: meta.runtime.mise
+
+  task-output-prefix:
+    - meta_content_scope: variable.other.constant.mise
+    - match: "]"
+      scope: meta.brackets.mise punctuation.brackets.end.mise
+      set: task-output-text
+
+  task-output-text:
+    - include: runtime
+    - match: \s+(\$)\s+
+      captures:
+        1: meta.shell.prompt.mise constant.other.mise
+      embed: scope:source.shell
+      embed_scope: text.shell.embedded.mise
+      escape: \n
+    - match: $\n?
+      pop: true
+
+  user-input:
+    - meta_content_scope: meta.user-input.mise variable.other.constant.mise
+    - match: $\n?
+      pop: true
