@@ -1,4 +1,6 @@
-{
-    "caption": "Run Mise task",
-    "command": "run_mise_task"
-}
+[
+    {
+        "caption": "Run Mise task",
+        "command": "run_mise_task"
+    }
+]
