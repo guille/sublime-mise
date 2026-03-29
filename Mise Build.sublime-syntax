@@ -11,6 +11,9 @@ variables:
   runtime: \[?Finished in (\d+(\.)?\d*)(\w+)\]?
 contexts:
   main:
+    - include: statements
+
+  statements:
     - match: "{{header}}"
       scope: meta.header.mise constant.other.mise
     - match: "{{prompt}}"
