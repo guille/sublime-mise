@@ -6,11 +6,22 @@ A Sublime Text build system that integrates with [mise](https://mise.jdx.dev/) t
 
 ## What this does
 
+### Build system
+
 This is a **build system for the mise task runner** — it is NOT for managing environments or tool installations. When using the provided build system it will:
 
 - List available tasks
 - Interactively prompt you for a task to run
 - Execute that task and how syntax-highlighted output in Sublime Text's build output panel
+
+### Command
+
+Another way of interacting with Mise is through the "Run Mise task" command, available in the Command Palette. This will fetch the available tasks defined in your project and give you a menu to select from. The selected task will be ran.
+
+In order to find the directory from which to run Mise, the preference is:
+1. The current open file's directory.
+2. The first directory you have in the sidebar/project.
+3. Your `$HOME` directory.
 
 ## Installation
 
@@ -39,5 +50,5 @@ Put this repository inside your Sublime Text Packages folder.
 - It hasn't been tested on Windows. Let me know if it works or not so I can fix it/remove this line.
 - Doesn't support all the [config file paths Mise supports](https://mise.jdx.dev/configuration.html#mise-toml). That means if you store your mise config in e.g. `mise/config.toml`, Sublime won't offer you Mise as an option. You can still force-select it.
 - Planned features (read: will likely never bother, feel free to open a PR)
-	- A WindowCommand that parses the output of `mise tasks --json`, shows them to the user in the Quick Panel and [exec](https://docs.sublimetext.io/reference/commands.html#exec) the chosen one.
-	- A "Mise Exec" build system that prompts the user for a command and does `mise exec -- $input`
+	- Better syntax highlighting of the results.
+	- A "Mise Exec" build system that prompts the user for any command and does `mise exec -- $input`
