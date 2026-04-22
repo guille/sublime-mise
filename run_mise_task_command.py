@@ -7,7 +7,24 @@ import sublime
 import sublime_plugin
 
 
-class RunMiseTaskHandler(sublime_plugin.ListInputHandler):
+def _find_best_dir(view: sublime.View, window: sublime.Window) -> str:
+    """
+    Decides what working_dir to run mise from.
+    Heuristic:
+    1. Parent of the open file
+    2. First open folder in the sidebar
+    3. $HOME
+    """
+    # Run from $HOME if we can't find a better path
+    current_dir = str(pathlib.Path.home())
+    if file := view.file_name():
+        current_dir = str(pathlib.Path(file).parent)
+    elif open_dirs := window.folders():
+        current_dir = open_dirs[0]
+    return current_dir
+
+
+class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
     def placeholder(self):
         return "Choose task:"
 
@@ -20,19 +37,11 @@ class RunMiseTaskHandler(sublime_plugin.ListInputHandler):
     def list_items(self) -> "list[sublime.ListInputItem]":
         window = sublime.active_window()
         view = window.active_view()
-        # Run from $HOME if we can't find a better path
-        current_dir = str(pathlib.Path.home())
-        if view:
-            file = view.file_name()
-            if file:
-                current_dir = str(pathlib.Path(file).parent)
-            else:
-                open_dirs = window.folders()
-                if open_dirs:
-                    current_dir = open_dirs[0]
-        else:
+        if view is None:
             window.status_message("No view is active")
             return []
+
+        current_dir = _find_best_dir(view, window)
 
         try:
             result = subprocess.run(
@@ -64,13 +73,12 @@ class RunMiseTaskHandler(sublime_plugin.ListInputHandler):
         ]
 
 
-class RunMiseTaskCommand(sublime_plugin.WindowCommand):
+class MiseRunTaskCommand(sublime_plugin.WindowCommand):
     def run(self, task: "tuple[str, str]" = ("", "")):
         if not task or not task[1]:
             return
 
         mise_dir, task_name = task
-        # print(f"Running {task_name} inside {mise_dir}")
 
         exec_args: sublime.CommandArgs = {
             "cmd": ["mise", "run", task_name],
@@ -82,7 +90,25 @@ class RunMiseTaskCommand(sublime_plugin.WindowCommand):
         self.window.run_command("exec", exec_args)
 
     def input(self, args: Any):
-        return RunMiseTaskHandler()
+        return MiseRunTaskHandler()
 
     def input_description(self):
         return "Run Mise task"
+
+
+class MiseTrustCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        view = self.window.active_view()
+        if view is None:
+            self.window.status_message("No view is active")
+            return
+
+        mise_dir = _find_best_dir(view, self.window)
+
+        exec_args: sublime.CommandArgs = {
+            "cmd": ["mise", "trust"],
+            "working_dir": mise_dir,
+            "quiet": False,
+        }
+
+        self.window.run_command("exec", exec_args)

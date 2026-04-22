@@ -1,0 +1,28 @@
+[
+  {
+    "id": "preferences",
+    "children": [
+      {
+        "caption": "Package Settings",
+        "mnemonic": "P",
+        "id": "package-settings",
+        "children": [
+          {
+            "caption": "Mise",
+            "id": "mise-settings",
+            "children": [
+              {
+                "caption": "Settings",
+                "command": "edit_settings",
+                "args": {
+                  "base_file": "${packages}/Mise/Mise.sublime-settings",
+                  "default": "// Settings in here override those in \"Mise/Mise.sublime-settings\"\n{\n\t$0\n}\n"
+                }
+              },
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

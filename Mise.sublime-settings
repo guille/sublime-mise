@@ -1,0 +1,4 @@
+{
+	// Automatically set ENV vars from Mise when sublime loads a project and unset them on unload
+	"load_env_in_projects": true
+}

@@ -1,6 +1,18 @@
 [
     {
-        "caption": "Run Mise task",
-        "command": "run_mise_task"
+        "caption": "Preferences: Mise Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/Mise/Mise.sublime-settings",
+            "default": "// Settings in here override those in \"Mise/Mise.sublime-settings\"\n{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "Mise: Run task",
+        "command": "mise_run_task"
+    },
+    {
+        "caption": "Mise: Trust config",
+        "command": "mise_trust"
     }
 ]
