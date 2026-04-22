@@ -1,0 +1,16 @@
+=> 1.2.0
+
+# Breaking changes
+
+- Renamed the command "run_mise_task" to "mise_run_task".
+
+
+# New features
+
+- Extended the package to support loading and unloading environment variables configured in Mise.
+	- This is enabled by default but can be disabled in the settings.
+- Added a new command: "Mise: Trust config"
+
+
+Report bugs or request features in the Github repo: https://github.com/guille/sublime-mise
+
