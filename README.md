@@ -12,22 +12,24 @@ This package will load the environment variables that Mise provides when you ope
 
 This feature looks through the folders configured in your sublime-project file, trying to find any that have a `mise.toml` or `mise.local.toml` in its root.
 
-The package will load environments from the shorter path it can, meaning if you add two directories to your project, `root` and `root/server`:
+The package will load environments from any top-level folders, but it will give priority to ancestors when there are clashes.
+
+I'll illustrate with an example: if your directory structure is like this:
 ```
 root
-├── mise.toml
+├── mise.toml (defines FOO=1)
 └── server
-    └── mise.toml
+    ├── mise.toml (defines BAR=2)
+    └── component
+        └── mise.toml (defines BAZ=3 and FOO=9)
 ```
 
-Only root's env will be loaded. If root doesn't have a mise.toml, then the subdirectory's mise.toml will be used.
+This package will load the following variables:
+```sh
+FOO=1
+BAR=2
+BAZ=3
 ```
-root
-└── server
-    └── mise.toml
-```
-
-This was done to simplify things but may change in the future.
 
 ### Build system
 

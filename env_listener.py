@@ -54,17 +54,10 @@ class MiseEnvListener(sublime_plugin.EventListener):
                 continue
             normalized.append(path.resolve())
 
-        # Exclude any folder that is a child of another folder in the list.
         # Sort by path depth so parents are always checked before children.
         normalized.sort(key=lambda p: len(p.parts))
-        filtered: list[Path] = []
-        for path in normalized:
-            if not any(
-                path != other and is_relative_to(path, other) for other in filtered
-            ):
-                filtered.append(path)
 
-        for path in filtered:
+        for path in normalized:
             try:
                 result = subprocess.run(
                     ["mise", "env", "--json", "--cd", str(path)],
@@ -73,7 +66,8 @@ class MiseEnvListener(sublime_plugin.EventListener):
                     check=True,
                 )
                 data = cast("dict[str, str]", json.loads(result.stdout))
-                vars_to_apply.update(data)
+                for k, v in data.items():
+                    vars_to_apply.setdefault(k, v)
             except subprocess.CalledProcessError as e:
                 window.status_message(f"Command failed with exit code {e.returncode}")
                 print(f"stderr: {e.stderr}")
@@ -102,7 +96,6 @@ class MiseEnvListener(sublime_plugin.EventListener):
         changes = _mise_env_cache.pop(id, [])
 
         for key, old_value, new_value in reversed(changes):
-            print(key, old_value, new_value)
             # Only revert if the value hasn't been changed by someone else
             if os.environ.get(key) == new_value:
                 if old_value is None:
