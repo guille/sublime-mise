@@ -43,9 +43,14 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
 
         current_dir = _find_best_dir(view, window)
 
+        settings = sublime.load_settings("Mise.sublime-settings")
+        cmd = ["mise", "tasks", "--json", "--cd", current_dir]
+        if settings.get("include_all_monorepo_tasks", False) is True:
+            cmd.append("--all")
+
         try:
             result = subprocess.run(
-                ["mise", "tasks", "--json", "--cd", current_dir],
+                cmd,
                 capture_output=True,
                 text=True,
                 check=True,

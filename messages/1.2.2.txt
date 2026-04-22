@@ -1,0 +1,9 @@
+=> 1.2.2
+
+# New features
+
+Another quick release today to add monorepo support. A new setting, "include_all_monorepo_tasks",
+toggles whether the tasks are pulled with the `--all` parameter.
+
+See upstream for more info:
+https://mise.jdx.dev/tasks/monorepo.html#listing-tasks
