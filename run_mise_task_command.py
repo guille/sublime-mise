@@ -1,3 +1,4 @@
+import html
 import json
 import pathlib
 import subprocess
@@ -71,7 +72,7 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
             sublime.ListInputItem(
                 text=x["name"],
                 value=(current_dir, x["name"]),
-                details=x["run"],
+                details=f"<code>{html.escape(x['run'][0])}</code>{' ...' if len(x['run']) > 1 else ''}",
                 annotation=x.get("description", ""),
             )
             for x in data
