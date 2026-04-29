@@ -38,7 +38,11 @@ class MiseEnvListener(sublime_plugin.EventListener):
             project_path = Path(proj_file).parent
 
         vars_to_apply: "dict[str,str]" = {}
-        folders = cast("dict[str, Any]", window.project_data()).get("folders", [])
+        project_data = cast("dict[str, Any] | None", window.project_data())
+        if project_data is None:
+            return {}
+
+        folders = project_data.get("folders", [])
 
         normalized: list[Path] = []
         for folder in folders:
