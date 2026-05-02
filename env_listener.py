@@ -61,6 +61,13 @@ class MiseEnvListener(sublime_plugin.EventListener):
         # Sort by path depth so parents are always checked before children.
         normalized.sort(key=lambda p: len(p.parts))
 
+        vars_to_skip = cast(
+            "list[str]",
+            sublime.load_settings("Mise.sublime-settings").get(
+                "vars_to_exclude_from_autoloading", []
+            ),
+        )
+
         for path in normalized:
             try:
                 result = subprocess.run(
@@ -71,7 +78,8 @@ class MiseEnvListener(sublime_plugin.EventListener):
                 )
                 data = cast("dict[str, str]", json.loads(result.stdout))
                 for k, v in data.items():
-                    vars_to_apply.setdefault(k, v)
+                    if k not in vars_to_skip:
+                        vars_to_apply.setdefault(k, v)
             except subprocess.CalledProcessError as e:
                 window.status_message(f"Command failed with exit code {e.returncode}")
                 print(f"stderr: {e.stderr}")

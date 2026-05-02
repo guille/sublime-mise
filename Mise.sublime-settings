@@ -1,6 +1,10 @@
 {
 	// Automatically set ENV vars from Mise when sublime loads a project and unset them on unload
 	"load_env_in_projects": true,
+	// The env var names listed here will be excluded from env auto-loading
+	"vars_to_exclude_from_autoloading": [
+		// "PATH", "API_KEY"
+	],
 	// Includes tasks from the entire monorepo in the task picker
 	"include_all_monorepo_tasks": true
 }

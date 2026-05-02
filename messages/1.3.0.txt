@@ -1,0 +1,6 @@
+=> 1.3.0
+
+# New features
+
+New setting added (vars_to_exclude_from_autoloading) that accepts a configurable list of ENV vars
+that will be excluded from the automatic loading.
