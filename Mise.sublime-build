@@ -1,9 +1,9 @@
 {
 	"linux": {
-		"shell_cmd": "printf -- '-- Available tasks:\n' && mise tasks && printf -- '\\n-- Task to run? > ' && read task && mise run \"\\$task\"",
+		"shell_cmd": "printf -- '-- Available tasks:\n' && mise tasks && printf -- '\\n-- Task to run? > ' && read task && NO_COLOR=1 mise run \"\\$task\"",
 	},
 	"osx": {
-		"shell_cmd": "printf -- '-- Available tasks:\n' && mise tasks && printf -- '\\n-- Task to run? > ' && read task && mise run \"\\$task\"",
+		"shell_cmd": "printf -- '-- Available tasks:\n' && mise tasks && printf -- '\\n-- Task to run? > ' && read task && NO_COLOR=1 mise run \"\\$task\"",
 	},
 	"windows": {
 		"shell_cmd": "echo -- Available tasks: && mise tasks && echo. && set /p task=-- Task to run? ^> && mise run \"%task%\""

@@ -95,6 +95,7 @@ class MiseRunTaskCommand(sublime_plugin.WindowCommand):
         exec_args: sublime.CommandArgs = {
             "cmd": ["mise", "run", task_name],
             "working_dir": mise_dir,
+            "env": {"NO_COLOR": "1"},
             "syntax": "Packages/Mise/Mise Build.sublime-syntax",
             "quiet": False,
         }
