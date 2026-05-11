@@ -19,6 +19,35 @@ def is_relative_to(path: Path, other: Path):
         return False
 
 
+def upglob(start: Path) -> "Path | None":
+    current = start.resolve()
+    if current.is_file():
+        current = current.parent
+
+    current_dev = os.stat(current).st_dev
+    home = Path.home().resolve()
+
+    # Determine the ceiling: $HOME if we start at/below it, else filesystem root
+    try:
+        current.relative_to(home)
+        ceiling = home
+    except ValueError:
+        ceiling = None  # No ceiling — walk all the way to root
+
+    while True:
+        for marker in MISE_KEYFILES:
+            if (current / marker).exists():
+                return current
+        if current == ceiling:
+            return None  # Hit $HOME without finding the marker
+        parent = current.parent
+        if parent == current:
+            return None
+        if os.stat(parent).st_dev != current_dev:
+            return None  # Stop at filesystem boundary
+        current = parent
+
+
 _mise_env_cache: "dict[int, list[tuple[str, str | None, str]]]" = {}
 
 
@@ -132,3 +161,32 @@ class MiseEnvListener(sublime_plugin.EventListener):
     def on_pre_close_project(self, window: sublime.Window):
         if self._is_enabled():
             self.revert_env_vars(window.id())
+
+    def on_query_context(
+        self,
+        view: sublime.View,
+        key: str,
+        operator: sublime.QueryOperator,
+        operand: "sublime.Value",
+        match_all: bool,  # pyright: ignore[reportUnusedParameter]
+    ) -> "bool | None":
+        if key != "mise.upglob_has_keyfile":
+            return None
+
+        if not isinstance(operand, bool):
+            return None
+
+        file = view.file_name()
+
+        if file is None and (window := view.window()):
+            file = window.extract_variables().get("file")
+
+        if not file or not upglob(Path(file)):
+            return False
+
+        if operator == sublime.OP_EQUAL:
+            return operand
+        elif operator == sublime.OP_NOT_EQUAL:
+            return not operand
+        else:
+            return None  # I'm not bothering with OP_REGEX_MATCH et al

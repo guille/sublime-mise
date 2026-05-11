@@ -1,0 +1,39 @@
+=> 1.4.0
+
+# New features
+
+A context key "mise.upglob_has_keyfile" was added, which enables selectively defining a keybind
+only when the open file has a mise.toml or mise.local.toml in any parent directory.
+
+This allows, for example, overriding default keybinds like follows, to use the Mise task picker over
+build systems.
+
+```
+{
+	"keys": [
+		"ctrl+shift+b"
+	],
+	"command": "show_overlay",
+	"args": {
+		"overlay": "command_palette",
+		"command": "mise_run_task"
+	},
+	"context": [
+		{
+			"key": "mise.upglob_has_keyfile",
+			"operand": true,
+			"operator": "equal"
+		}
+	]
+}
+```
+
+References:
+https://www.sublimetext.com/docs/key_bindings.html#context-key
+
+
+
+# Bug fixes
+
+- Fixed a bug where tasks without a "run" command were making the picker error out.
+- Improved syntax highlighting for the build system's output.
