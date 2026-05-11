@@ -23,7 +23,7 @@ _mise_env_cache: "dict[int, list[tuple[str, str | None, str]]]" = {}
 
 
 class MiseEnvListener(sublime_plugin.EventListener):
-    def is_enabled(self) -> bool:
+    def _is_enabled(self) -> bool:
         settings = sublime.load_settings("Mise.sublime-settings")
         return settings.get("load_env_in_projects", False) is True
 
@@ -118,17 +118,17 @@ class MiseEnvListener(sublime_plugin.EventListener):
                     os.environ[key] = old_value
 
     def on_init(self, views: "list[sublime.View]"):
-        if self.is_enabled():
+        if self._is_enabled():
             windows = list({w for v in views if (w := v.window()) is not None})
             for window in windows:
                 variables = self.fetch_env_vars(window)
                 self.apply_env_vars(window.id(), variables)
 
     def on_load_project(self, window: sublime.Window):
-        if self.is_enabled():
+        if self._is_enabled():
             variables = self.fetch_env_vars(window)
             self.apply_env_vars(window.id(), variables)
 
     def on_pre_close_project(self, window: sublime.Window):
-        if self.is_enabled():
+        if self._is_enabled():
             self.revert_env_vars(window.id())
