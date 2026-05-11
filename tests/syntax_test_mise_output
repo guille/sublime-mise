@@ -34,21 +34,12 @@ check   Format & lint the code
 #<- meta.brackets.mise punctuation.brackets.begin.mise
 #^^^^ variable.other.constant.mise
 #    ^ meta.brackets.mise punctuation.brackets.end.mise
-#     ^ text.build.mise -meta -variable
-#      ^^^^^^^^^^^^^^^^^^ meta.runtime.mise
-#                  ^^^^ constant.numeric.mise
-#                    ^ punctuation.separator.decimal.mise
-#                      ^^ constant.numeric.suffix.mise
+#     ^^^^^^^^^^^^^^^^^^^ text.build.mise -meta -variable
 
 Finished in 61ms
-#<- meta.runtime.mise
-#^^^^^^^^^^^^^^^ meta.runtime.mise
-#           ^^ constant.numeric.mise
-#             ^^ constant.numeric.suffix.mise
+#<- text.build.mise -meta -variable
+#^^^^^^^^^^^^^^^ text.build.mise -meta -variable
 
 [Finished in 2.5s]
-#<- meta.runtime.mise
-#^^^^^^^^^^^^^^^^^ meta.runtime.mise
-#            ^^^ constant.numeric.mise
-#             ^ punctuation.separator.decimal.mise
-#               ^ constant.numeric.suffix.mise
+#<- comment.line.result.build-output.mise
+#^^^^^^^^^^^^^^^^^ comment.line.result.build-output.mise

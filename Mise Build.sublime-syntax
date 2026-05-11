@@ -6,9 +6,8 @@ scope: text.build.mise
 version: 2
 
 variables:
-  prompt: "--\\s+Task to run\\? >"
   header: "--\\s+Available tasks:"
-  runtime: \[?Finished in (\d+(\.)?\d*)(\w+)\]?
+  prompt: "(--\\s+Task to run\\? >)(.*)"
 contexts:
   main:
     - include: statements
@@ -16,13 +15,19 @@ contexts:
   statements:
     - match: "{{header}}"
       scope: meta.header.mise constant.other.mise
-    - match: "{{prompt}}"
-      scope: meta.prompt.mise constant.other.mise
-      push: user-input
-    - include: runtime
+      push: task-list
+    - match: '^\[.+\]$'
+      scope: comment.line.result.build-output.mise
     - match: "\\["
       scope: meta.brackets.mise punctuation.brackets.begin.mise
       push: task-output-prefix
+
+  task-list:
+    - match: "{{prompt}}"
+      captures:
+        1: meta.prompt.mise constant.other.mise
+        2: meta.user-input.mise variable.other.constant.mise
+      pop: 1
     - match: \w+
       scope: variable.other.constant.mise
       push: task-description
@@ -34,14 +39,6 @@ contexts:
     - match: $\n?
       pop: true
 
-  runtime:
-    - match: "{{runtime}}"
-      captures:
-        1: constant.numeric.mise
-        2: punctuation.separator.decimal.mise
-        3: constant.numeric.suffix.mise
-      scope: meta.runtime.mise
-
   task-output-prefix:
     - meta_content_scope: variable.other.constant.mise
     - match: "]"
@@ -49,7 +46,6 @@ contexts:
       set: task-output-text
 
   task-output-text:
-    - include: runtime
     - match: \s+(\$)\s+
       captures:
         1: meta.shell.prompt.mise constant.other.mise
