@@ -59,17 +59,16 @@ class MiseEnvListener(sublime_plugin.EventListener):
     def _has_keyfiles(self, path: Path) -> bool:
         return any((path / name).exists() for name in MISE_KEYFILES)
 
-    def fetch_env_vars(self, window: sublime.Window) -> "dict[str,str]":
+    def _project_folders_with_keyfiles(self, window: sublime.Window) -> "list[Path]":
         proj_file = window.project_file_name()
         if proj_file is None:
             project_path = None
         else:
             project_path = Path(proj_file).parent
 
-        vars_to_apply: "dict[str,str]" = {}
         project_data = cast("dict[str, Any] | None", window.project_data())
         if project_data is None:
-            return {}
+            return []
 
         folders = project_data.get("folders", [])
 
@@ -86,10 +85,17 @@ class MiseEnvListener(sublime_plugin.EventListener):
             if not self._has_keyfiles(path):
                 continue
             normalized.append(path.resolve())
+        return normalized
+
+    def fetch_env_vars(self, window: sublime.Window) -> "dict[str,str]":
+        normalized = self._project_folders_with_keyfiles(window)
+        if not normalized:
+            return {}
 
         # Sort by path depth so parents are always checked before children.
         normalized.sort(key=lambda p: len(p.parts))
 
+        vars_to_apply: "dict[str,str]" = {}
         vars_to_skip = cast(
             "list[str]",
             sublime.load_settings("Mise.sublime-settings").get(
@@ -162,20 +168,20 @@ class MiseEnvListener(sublime_plugin.EventListener):
         if self._is_enabled():
             self.revert_env_vars(window.id())
 
-    def on_query_context(
+    def _handle_ctx_result_found(self, operator: sublime.QueryOperator, operand: bool):
+        if operator == sublime.OP_EQUAL:
+            return operand
+        elif operator == sublime.OP_NOT_EQUAL:
+            return not operand
+        else:
+            return None  # I'm not bothering with OP_REGEX_MATCH et al
+
+    def handle_ctx_upglob_has_keyfile(
         self,
         view: sublime.View,
-        key: str,
         operator: sublime.QueryOperator,
-        operand: "sublime.Value",
-        match_all: bool,  # pyright: ignore[reportUnusedParameter]
+        operand: bool,
     ) -> "bool | None":
-        if key != "mise.upglob_has_keyfile":
-            return None
-
-        if not isinstance(operand, bool):
-            return None
-
         file = view.file_name()
 
         if file is None and (window := view.window()):
@@ -184,9 +190,34 @@ class MiseEnvListener(sublime_plugin.EventListener):
         if not file or not upglob(Path(file)):
             return False
 
-        if operator == sublime.OP_EQUAL:
-            return operand
-        elif operator == sublime.OP_NOT_EQUAL:
-            return not operand
-        else:
-            return None  # I'm not bothering with OP_REGEX_MATCH et al
+        return self._handle_ctx_result_found(operator, operand)
+
+    def handle_ctx_project_has_keyfile(
+        self,
+        view: sublime.View,
+        operator: sublime.QueryOperator,
+        operand: bool,
+    ):
+        if window := view.window():
+            if self._project_folders_with_keyfiles(window):
+                return self._handle_ctx_result_found(operator, operand)
+
+        return False
+
+    def on_query_context(
+        self,
+        view: sublime.View,
+        key: str,
+        operator: sublime.QueryOperator,
+        operand: "sublime.Value",
+        match_all: bool,  # pyright: ignore[reportUnusedParameter]
+    ) -> "bool | None":
+        if not isinstance(operand, bool):
+            return None
+
+        if key == "mise.upglob_has_keyfile":
+            return self.handle_ctx_upglob_has_keyfile(view, operator, operand)
+        if key == "mise.project_has_keyfile":
+            return self.handle_ctx_project_has_keyfile(view, operator, operand)
+
+        return None

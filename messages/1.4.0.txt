@@ -2,11 +2,14 @@
 
 # New features
 
-A context key "mise.upglob_has_keyfile" was added, which enables selectively defining a keybind
-only when the open file has a mise.toml or mise.local.toml in any parent directory.
+Added two context keys, which enables selectively defining keybinds
+- "mise.upglob_has_keyfile": evaluates to true when the open file has a keyfile in any parent directory.
+- "mise.project_has_keyfile": evaluates to true when the open project has a keyfile in any of its configured folders (top-level only).
+
+(Note: supported keyfiles are currently mise.toml or mise.local.toml)
 
 This allows, for example, overriding default keybinds like follows, to use the Mise task picker over
-build systems.
+build systems only when the open project uses Mise.
 
 ```
 {
@@ -20,7 +23,7 @@ build systems.
 	},
 	"context": [
 		{
-			"key": "mise.upglob_has_keyfile",
+			"key": "mise.project_has_keyfile",
 			"operand": true,
 			"operator": "equal"
 		}

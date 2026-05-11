@@ -68,9 +68,8 @@ Put this repository inside your Sublime Text Packages folder.
 
 ## Limitations and future work
 
-- It hasn't been tested on Windows. Let me know if it works or not so I can fix it/remove this line.
-- Doesn't support all the [config file paths Mise supports](https://mise.jdx.dev/configuration.html#mise-toml). That means if you store your mise config in e.g. `mise/config.toml`, Sublime won't automatically offer you Mise as an option for building. Environment loading also won't work.
-- Planned features (read: will likely never bother, feel free to open a PR)
-	- Load global Mise environment on plugin load (configurable via setting)
-	- Better syntax highlighting of the results.
+1. It hasn't been tested on Windows. Let me know if it works or not so I can fix it/remove this line.
+2. Doesn't support all the [config file paths Mise supports](https://mise.jdx.dev/configuration.html#mise-toml). That means if you store your mise config in e.g. `mise/config.toml`, Sublime won't automatically offer you Mise as an option for building. Environment loading also won't work.
+3. Planned features (read: will likely never bother, feel free to open a PR)
+	- Performance: checking `mise config ls --tracked-configs` might be faster than upglobbing or trying to check if any folder has a mise config. (This also fixes item #2 above). Note this requires [mise v2025.1.5](https://github.com/jdx/mise/releases/tag/v2025.1.5) or newer.
 	- A "Mise Exec" build system that prompts the user for any command and does `mise exec -- $input`
