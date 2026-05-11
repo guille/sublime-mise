@@ -68,15 +68,21 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
         if not data:
             window.status_message("No tasks available")
 
-        return [
-            sublime.ListInputItem(
-                text=x["name"],
-                value=(current_dir, x["name"]),
-                details=f"<code>{html.escape(x['run'][0])}</code>{' ...' if len(x['run']) > 1 else ''}",
-                annotation=x.get("description", ""),
-            )
-            for x in data
-        ]
+        return [self._build_item(x, current_dir) for x in data]
+
+    def _build_item(self, x: Any, current_dir: str) -> sublime.ListInputItem:
+        run = x["run"]
+        details = (
+            f"<code>{html.escape(run[0])}</code>{' ...' if len(run) > 1 else ''}"
+            if run
+            else ""
+        )
+        return sublime.ListInputItem(
+            text=x["name"],
+            value=(current_dir, x["name"]),
+            details=details,
+            annotation=x.get("description", ""),
+        )
 
 
 class MiseRunTaskCommand(sublime_plugin.WindowCommand):
