@@ -21,6 +21,11 @@ contexts:
     - match: "\\["
       scope: meta.brackets.mise punctuation.brackets.begin.mise
       push: task-output-prefix
+    - match: ((?:[a-zA-Z]:[\/\\]|~\/|[.\/])?(?:[\w\-.]+[\/\\])+[\w\-.]+\.\w{1,5}):?(\d+)?:?(\d+)?
+      captures:
+        1: entity.name.filename.build-output.mise
+        2: constant.numeric.line-number.build-output.mise
+        3: constant.numeric.line-number.build-output.mise
 
   task-list:
     - match: "{{prompt}}"

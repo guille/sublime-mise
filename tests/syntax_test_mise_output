@@ -30,6 +30,31 @@ check   Format & lint the code
 #    ^ meta.brackets.mise punctuation.brackets.end.mise
 #     ^^^^^^^^^^^^^^^^^^^ text.build.mise -meta -variable
 
+rspec spec/some_spec.rb:22:33 foobar
+#^^^^^ -entity -constant
+#     ^^^^^^^^^^^^^^^^^ entity.name.filename.build-output.mise
+#                      ^ -entity -constant
+#                       ^^ constant.numeric.line-number.build-output.mise
+#                         ^ -entity -constant
+#                          ^^ constant.numeric.line-number.build-output.mise
+
+rspec spec/some_spec.rb:22
+#^^^^^ -entity -constant
+#     ^^^^^^^^^^^^^^^^^ entity.name.filename.build-output.mise
+#                      ^ -entity -constant
+#                       ^^ constant.numeric.line-number.build-output.mise
+
+~/spec/some_spec.rb:
+#<- entity.name.filename.build-output.mise
+#^^^^^^^^^^^^^^^^^^ entity.name.filename.build-output.mise
+#                  ^ -entity -constant
+
+~/spec/some_spec.rb failed
+#<- entity.name.filename.build-output.mise
+#^^^^^^^^^^^^^^^^^^ entity.name.filename.build-output.mise
+#                  ^^^^^^^ -entity -constant
+
+
 [lint] Finished in 42.3ms
 #<- meta.brackets.mise punctuation.brackets.begin.mise
 #^^^^ variable.other.constant.mise
