@@ -106,10 +106,11 @@ class MiseEnvListener(sublime_plugin.EventListener):
         for path in normalized:
             try:
                 result = subprocess.run(
-                    ["mise", "env", "--json", "--cd", str(path)],
+                    ["mise", "env", "--json"],
                     capture_output=True,
                     text=True,
                     check=True,
+                    cwd=str(path),
                 )
                 data = cast("dict[str, str]", json.loads(result.stdout))
                 for k, v in data.items():
