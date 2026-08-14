@@ -1,11 +1,11 @@
 import html
-import json
 import pathlib
-import subprocess
 from typing import Any
 
 import sublime
 import sublime_plugin
+
+from .mise_shared import run_mise_json
 
 
 def _find_best_dir(view: sublime.View, window: sublime.Window) -> str:
@@ -49,21 +49,8 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
         if settings.get("include_all_monorepo_tasks", False) is True:
             cmd.append("--all")
 
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                cwd=current_dir,
-            )
-            data = json.loads(result.stdout)
-        except subprocess.CalledProcessError as e:
-            window.status_message(f"Command failed with exit code {e.returncode}")
-            print(f"stderr: {e.stderr}")
-            return []
-        except json.JSONDecodeError as e:
-            window.status_message(f"Command output was not valid JSON: {e}")
+        data = run_mise_json(cmd, current_dir, window)
+        if data is None:
             return []
 
         if not data:
@@ -122,6 +109,7 @@ class MiseTrustCommand(sublime_plugin.WindowCommand):
         exec_args: sublime.CommandArgs = {
             "cmd": ["mise", "trust"],
             "working_dir": mise_dir,
+            "env": {"NO_COLOR": "1"},
             "quiet": False,
         }
 
