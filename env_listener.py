@@ -1,6 +1,8 @@
 import os
+import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 import sublime
 import sublime_plugin
@@ -8,6 +10,30 @@ import sublime_plugin
 from .mise_shared import run_mise_json
 
 MISE_KEYFILES = ("mise.toml", "mise.local.toml")
+
+CACHE_TTL = 10  # seconds
+
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+def _ttl_get(
+    cache: "dict[K, tuple[V, float]]", key: K, compute: "Callable[[], V]"
+) -> V:
+    hit = cache.get(key)
+    now = time.monotonic()
+    if hit is not None and now - hit[1] < CACHE_TTL:
+        return hit[0]
+    value = compute()
+    cache[key] = (value, now)
+    return value
+
+
+def dir_has_mise_config(path: Path) -> bool:
+    try:
+        return any((path / name).is_file() for name in MISE_KEYFILES)
+    except OSError:
+        return False
 
 
 # Python 3.9
@@ -38,9 +64,8 @@ def upglob(start: Path) -> "Path | None":
         ceiling = None  # No ceiling — walk all the way to root
 
     while True:
-        for marker in MISE_KEYFILES:
-            if (current / marker).exists():
-                return current
+        if dir_has_mise_config(current):
+            return current
         if current == ceiling:
             return None  # Hit $HOME without finding the marker
         parent = current.parent
@@ -54,16 +79,24 @@ def upglob(start: Path) -> "Path | None":
         current = parent
 
 
+_upglob_cache: "dict[Path, tuple[Path | None, float]]" = {}
+
+
+def upglob_cached(start: Path) -> "Path | None":
+    key = start.resolve()
+    if not key.is_dir():
+        key = key.parent
+    return _ttl_get(_upglob_cache, key, lambda: upglob(key))
+
+
 _mise_env_cache: "dict[int, list[tuple[str, str | None, str]]]" = {}
+_project_ctx_cache: "dict[int, tuple[bool, float]]" = {}
 
 
 class MiseEnvListener(sublime_plugin.EventListener):
     def _is_enabled(self) -> bool:
         settings = sublime.load_settings("Mise.sublime-settings")
         return settings.get("load_env_in_projects", False) is True
-
-    def _has_keyfiles(self, path: Path) -> bool:
-        return any((path / name).exists() for name in MISE_KEYFILES)
 
     def _project_folders_with_keyfiles(self, window: sublime.Window) -> "list[Path]":
         proj_file = window.project_file_name()
@@ -88,7 +121,7 @@ class MiseEnvListener(sublime_plugin.EventListener):
                     )
                     continue
                 path = project_path / path
-            if not self._has_keyfiles(path):
+            if not dir_has_mise_config(path):
                 continue
             normalized.append(path.resolve())
         return normalized
@@ -189,7 +222,7 @@ class MiseEnvListener(sublime_plugin.EventListener):
         if file is None and (window := view.window()):
             file = window.extract_variables().get("file")
 
-        found = bool(file and upglob(Path(file)))
+        found = bool(file and upglob_cached(Path(file)))
         return self._eval_ctx(found, operator, operand)
 
     def handle_ctx_project_has_keyfile(
@@ -199,7 +232,15 @@ class MiseEnvListener(sublime_plugin.EventListener):
         operand: bool,
     ) -> "bool | None":
         window = view.window()
-        found = window is not None and bool(self._project_folders_with_keyfiles(window))
+        if window is None:
+            found = False
+        else:
+            w = window
+            found = _ttl_get(
+                _project_ctx_cache,
+                w.id(),
+                lambda: bool(self._project_folders_with_keyfiles(w)),
+            )
         return self._eval_ctx(found, operator, operand)
 
     def on_query_context(
