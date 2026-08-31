@@ -26,48 +26,58 @@ def _find_best_dir(view: sublime.View, window: sublime.Window) -> str:
     return current_dir
 
 
-def _task_usage_summary(mise_dir: str, task_name: str, window: sublime.Window) -> str:
+def _task_usage(mise_dir: str, task_name: str, window: sublime.Window) -> str:
     """
-    Figures out whether a task accepts arguments, and if so a short usage
-    summary to show the user.
+    A short usage summary for a task, e.g. "[-v --verbose] <name>", or an
+    empty string if the task takes no arguments the user can supply.
 
-    Prefers the `mise tasks info` facility, which understands `usage` specs
-    (and legacy tera-style args()/option()/flag() calls). Falls back to the
-    raw `usage` field from `mise tasks --json` (already fetched to build the
-    task list) for older mise versions that lack the `info` subcommand.
-
-    Returns an empty string if the task doesn't appear to accept arguments.
+    Uses `mise tasks info`, which resolves both `usage` specs and the legacy
+    tera-style args()/option()/flag() calls. Versions of mise too old to have
+    that subcommand (pre-2024.9.10) just never prompt.
     """
     info = run_mise_json(
         ["mise", "tasks", "info", task_name, "--json"], mise_dir, window, quiet=True
     )
-    if info is not None:
-        cmd = info.get("usage_spec", {}).get("cmd", {})
-        if cmd.get("args") or cmd.get("flags"):
-            return cmd.get("usage", "")
-        return ""
+    return (info or {}).get("usage_spec", {}).get("cmd", {}).get("usage", "")
 
-    # Fallback: re-read the task list directly, since `tasks info` isn't
-    # available. Raw `usage` DSL is truthy whenever the task declares args.
-    data = run_mise_json(["mise", "tasks", "--json"], mise_dir, window, quiet=True)
-    for task in data or []:
-        if task.get("name") == task_name:
-            return task.get("usage", "")
-    return ""
+
+def _split_args(text: str) -> "list[str]":
+    """
+    Split typed arguments into argv, keeping quoted runs together.
+
+    Non-posix so Windows paths keep their backslashes and a bare apostrophe
+    ("don't") isn't read as an opening quote; posix mode mangles both. That
+    leaves the quotes on, so wrapping pairs are stripped afterwards.
+
+    Raises ValueError if a quote is left open.
+    """
+    return [
+        t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t
+        for t in shlex.split(text, posix=False)
+    ]
 
 
 class MiseTaskArgsInputHandler(sublime_plugin.TextInputHandler):
-    def __init__(self, usage_summary: str):
-        self.usage_summary = usage_summary
+    def __init__(self, usage: str):
+        self.usage = usage
 
     def name(self):
         return "task_args"
 
     def placeholder(self):
-        return f"Arguments ({self.usage_summary})" if self.usage_summary else "Arguments"
+        return f"Arguments: {self.usage}"
 
     def description(self, text: str):
         return text or "(no args)"
+
+    def validate(self, text: str):
+        # Refuse an unterminated quote here; by the time the command runs,
+        # there is nowhere left to report it but a traceback.
+        try:
+            _split_args(text)
+        except ValueError:
+            return False
+        return True
 
 
 class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
@@ -122,12 +132,8 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
         if not task or not task[1]:
             return None
 
-        mise_dir, task_name = task
-        window = sublime.active_window()
-        usage_summary = _task_usage_summary(mise_dir, task_name, window)
-        if usage_summary:
-            return MiseTaskArgsInputHandler(usage_summary)
-        return None
+        usage = _task_usage(task[0], task[1], sublime.active_window())
+        return MiseTaskArgsInputHandler(usage) if usage else None
 
 
 class MiseRunTaskCommand(sublime_plugin.WindowCommand):
@@ -137,12 +143,15 @@ class MiseRunTaskCommand(sublime_plugin.WindowCommand):
 
         mise_dir, task_name = task
 
-        cmd = ["mise", "run", task_name]
-        if task_args.strip():
-            cmd.extend(shlex.split(task_args))
+        try:
+            args = _split_args(task_args)
+        except ValueError as e:
+            # The palette rejects these in validate(); a keybinding can't.
+            self.window.status_message(f"Could not parse task arguments: {e}")
+            return
 
         exec_args: sublime.CommandArgs = {
-            "cmd": cmd,
+            "cmd": ["mise", "run", task_name] + args,
             "working_dir": mise_dir,
             "env": {"NO_COLOR": "1"},
             "syntax": "Packages/Mise/Mise Build.sublime-syntax",
