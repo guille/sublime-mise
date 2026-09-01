@@ -59,14 +59,18 @@ class MiseTaskArgsInputHandler(sublime_plugin.TextInputHandler):
         self,
         text: str,
         event: "dict[str, Any] | None" = None,  # pyright: ignore[reportUnusedParameter]
-    ):
-        # Refuse an unterminated quote here; by the time the command runs,
-        # there is nowhere left to report it but a traceback.
+    ) -> bool:
         try:
             split_args(text)
         except ValueError:
             return False
         return True
+
+    def preview(self, text: str) -> "str | sublime.Html":
+        if self.validate(text):
+            return ""
+        # Only way the splitting fails
+        return sublime.Html("<b>Unterminated quote</b>")
 
 
 class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
