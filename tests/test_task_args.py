@@ -82,17 +82,19 @@ class _Window(object):
 
 
 def test_split_args(rt):
-    """Quoted runs stay together; Windows paths and apostrophes survive."""
+    """Double-quoted runs stay together; Windows paths and apostrophes survive."""
     assert rt._split_args("") == []
     assert rt._split_args("   ") == []
     assert rt._split_args("bob --force") == ["bob", "--force"]
     assert rt._split_args('a "b c"') == ["a", "b c"]
-    assert rt._split_args("a 'b c'") == ["a", "b c"]
-    # posix=True would eat the backslashes and choke on the apostrophe
+    assert rt._split_args('--name="two words"') == ["--name=two words"]
+    # Single quotes aren't treated as quoting, so apostrophes and Windows
+    # paths pass through untouched instead of eating backslashes/erroring.
+    assert rt._split_args("a 'b c'") == ["a", "'b", "c'"]
     assert rt._split_args(r"C:\path\to\file") == [r"C:\path\to\file"]
     assert rt._split_args("don't") == ["don't"]
 
-    for bad in ('a "unbalanced', "x 'y", '"'):
+    for bad in ('a "unbalanced', '"'):
         try:
             rt._split_args(bad)
         except ValueError:

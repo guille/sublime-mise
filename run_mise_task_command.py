@@ -42,18 +42,20 @@ def _task_usage(mise_dir: str, task_name: str) -> str:
 
 def _split_args(text: str) -> "list[str]":
     """
-    Split typed arguments into argv, keeping quoted runs together.
+    Split typed arguments into argv, keeping quoted runs together
+    (e.g. --name="two words" -> ["--name=two words"]).
 
-    Non-posix so Windows paths keep their backslashes and a bare apostrophe
-    ("don't") isn't read as an opening quote; posix mode mangles both. That
-    leaves the quotes on, so wrapping pairs are stripped afterwards.
+    Only double quotes are treated as quoting so a bare apostrophe
+    ("don't") and Windows path backslashes pass through untouched;
+    posix mode's default escape char would otherwise eat backslashes.
 
     Raises ValueError if a quote is left open.
     """
-    return [
-        t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t
-        for t in shlex.split(text, posix=False)
-    ]
+    lexer = shlex.shlex(text, posix=True)
+    lexer.whitespace_split = True
+    lexer.quotes = '"'
+    lexer.escape = ""
+    return list(lexer)
 
 
 class MiseTaskArgsInputHandler(sublime_plugin.TextInputHandler):
