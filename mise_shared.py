@@ -35,4 +35,7 @@ def run_mise_json(cmd: "list[str]", cwd: str, window: sublime.Window) -> "Any | 
         )
     except json.JSONDecodeError as e:
         window.status_message(f"Command output was not valid JSON: {e}")
+    except OSError as e:
+        # Most often mise missing from Sublime's PATH.
+        window.status_message(f"Could not run {cmd[0]}: {e}")
     return None
