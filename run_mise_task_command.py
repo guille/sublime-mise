@@ -104,14 +104,18 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
         if settings.get("include_all_monorepo_tasks", False) is True:
             cmd.append("--all")
 
-        data = run_mise_json(cmd, current_dir, window)
-        if data is None:
+        result = run_mise_json(cmd, current_dir)
+        if result.error is not None:
+            window.status_message(result.error)
+            if result.stderr:
+                print(f"stderr: {result.stderr}")
             return []
 
-        if not data:
+        if not result.data:
             window.status_message("No tasks available")
+            return []
 
-        return [self._build_item(x, current_dir) for x in data]
+        return [self._build_item(x, current_dir) for x in result.data]
 
     def _build_item(self, x: Any, current_dir: str) -> sublime.ListInputItem:
         run = x["run"]
