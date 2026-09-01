@@ -143,10 +143,14 @@ class MiseEnvListener(sublime_plugin.EventListener):
         )
 
         for path in normalized:
-            data = run_mise_json(["mise", "env", "--json"], str(path), window)
-            if data is None:
+            result = run_mise_json(["mise", "env", "--json"], str(path))
+            if result.error is not None:
+                window.status_message(result.error)
+                if result.stderr:
+                    print(f"stderr: {result.stderr}")
+            if result.data is None:
                 continue
-            for k, v in cast("dict[str, str]", data).items():
+            for k, v in cast("dict[str, str]", result.data).items():
                 if k not in vars_to_skip:
                     vars_to_apply.setdefault(k, v)
 
