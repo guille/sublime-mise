@@ -1,17 +1,22 @@
-=> 1.4.0
+=> 1.6.0
+
+I forgot to add the notes after releasing 1.4.0, so everything here except
+for the task args support has been there for a bit now!
+
 
 # New features
 
-Added two context keys, which enables selectively defining keybinds
-- "mise.upglob_has_keyfile": evaluates to true when the open file has a keyfile in any parent directory.
-- "mise.project_has_keyfile": evaluates to true when the open project has a keyfile in any of its configured folders (top-level only).
+- Added support for tasks with args, thanks to @macowie
+- Added two context keys, which enables selectively defining keybinds
+	- "mise.upglob_has_keyfile": evaluates to true when the open file has a keyfile in any parent directory.
+	- "mise.project_has_keyfile": evaluates to true when the open project has a keyfile in any of its configured folders (top-level only).
 
 (Note: supported keyfiles are currently mise.toml or mise.local.toml)
 
 This allows, for example, overriding default keybinds like follows, to use the Mise task picker over
 build systems only when the open project uses Mise.
 
-```
+```json
 {
 	"keys": [
 		"ctrl+shift+b"
