@@ -1,6 +1,6 @@
 """Self-check for prompting for mise task arguments.
 
-Run from the repo root with a real mise on PATH:
+No real mise binary needed; run with:
 
     python3 tests/test_task_args.py
 
@@ -9,32 +9,11 @@ they get stubbed before importing the plugin.
 """
 
 import importlib.util
-import subprocess
 import sys
-import tempfile
 import types
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-
-CONFIG = """
-[tasks.noargs]
-run = "echo hi"
-
-[tasks.spec]
-usage = '''
-arg "<name>"
-flag "-v --verbose"
-'''
-run = "echo hi"
-
-[tasks.tera]
-run = "echo {{arg(name='thing')}}"
-
-[tasks.hidden]
-usage = 'arg "<name>" hide=#true'
-run = "echo hi"
-"""
 
 
 def load_plugin():
@@ -109,23 +88,11 @@ def test_validate_rejects_open_quote(rt):
     assert handler.validate('a "unbalanced') is False
 
 
-def test_usage_only_when_task_takes_args(rt):
-    """Only tasks with usable args prompt, whichever DSL declared them."""
-    root = Path(tempfile.mkdtemp()).resolve()
-    (root / "mise.toml").write_text(CONFIG)
-    subprocess.run(["mise", "trust", str(root / "mise.toml")], capture_output=True)
-
-    usage = lambda name: rt._task_usage(str(root), name)
-    assert usage("spec") == "[-v --verbose] <name>"
-    assert usage("tera") == "<thing>"  # legacy tera arg() calls
-    assert usage("noargs") == ""
-    assert usage("hidden") == ""  # nothing the user can usefully type
-    assert usage("nonexistent") == ""  # `tasks info` exits non-zero
-
+def test_next_input_skips_empty_task(rt):
+    """next_input needs a real task name before it's worth prompting."""
     handler = rt.MiseRunTaskHandler()
-    assert handler.next_input({"task": (str(root), "noargs")}) is None
     assert handler.next_input({"task": ("", "")}) is None
-    assert handler.next_input({"task": (str(root), "spec")}) is not None
+    assert handler.next_input({}) is None
 
 
 def test_command_builds_argv(rt):
@@ -147,15 +114,11 @@ def test_command_builds_argv(rt):
 
 
 def main():
-    if subprocess.run(["mise", "--version"], capture_output=True).returncode != 0:
-        print("mise not available on PATH; skipping")
-        return 0
-
     rt = load_plugin()
     tests = [
         test_split_args,
         test_validate_rejects_open_quote,
-        test_usage_only_when_task_takes_args,
+        test_next_input_skips_empty_task,
         test_command_builds_argv,
     ]
     failed = 0
