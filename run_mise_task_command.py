@@ -26,19 +26,18 @@ def _find_best_dir(view: sublime.View, window: sublime.Window) -> str:
     return current_dir
 
 
-def _task_usage(mise_dir: str, task_name: str, window: sublime.Window) -> str:
+def _task_usage(mise_dir: str, task_name: str) -> str:
     """
     A short usage summary for a task, e.g. "[-v --verbose] <name>", or an
     empty string if the task takes no arguments the user can supply.
 
     Uses `mise tasks info`, which resolves both `usage` specs and the legacy
     tera-style args()/option()/flag() calls. Versions of mise too old to have
-    that subcommand (pre-2024.9.10) just never prompt.
+    that subcommand (pre-2024.9.10) just never prompt. Errors are ignored
+    since this is a best-effort convenience, not the primary task run path.
     """
-    info = run_mise_json(
-        ["mise", "tasks", "info", task_name, "--json"], mise_dir, window, quiet=True
-    )
-    return (info or {}).get("usage_spec", {}).get("cmd", {}).get("usage", "")
+    result = run_mise_json(["mise", "tasks", "info", task_name, "--json"], mise_dir)
+    return (result.data or {}).get("usage_spec", {}).get("cmd", {}).get("usage", "")
 
 
 def _split_args(text: str) -> "list[str]":
@@ -136,7 +135,7 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
         if not task or not task[1]:
             return None
 
-        usage = _task_usage(task[0], task[1], sublime.active_window())
+        usage = _task_usage(task[0], task[1])
         return MiseTaskArgsInputHandler(usage) if usage else None
 
 

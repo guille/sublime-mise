@@ -113,7 +113,7 @@ def test_usage_only_when_task_takes_args(rt):
     (root / "mise.toml").write_text(CONFIG)
     subprocess.run(["mise", "trust", str(root / "mise.toml")], capture_output=True)
 
-    usage = lambda name: rt._task_usage(str(root), name, _Window())
+    usage = lambda name: rt._task_usage(str(root), name)
     assert usage("spec") == "[-v --verbose] <name>"
     assert usage("tera") == "<thing>"  # legacy tera arg() calls
     assert usage("noargs") == ""
