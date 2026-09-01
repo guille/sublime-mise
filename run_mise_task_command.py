@@ -1,12 +1,11 @@
 import html
 import pathlib
-import shlex
 from typing import Any, cast
 
 import sublime
 import sublime_plugin
 
-from .mise_shared import run_mise_json
+from .mise_shared import run_mise_json, split_args
 
 
 def _find_best_dir(view: sublime.View, window: sublime.Window) -> str:
@@ -43,24 +42,6 @@ def _task_usage(mise_dir: str, task_name: str) -> str:
     return usage if isinstance(usage, str) else ""
 
 
-def _split_args(text: str) -> "list[str]":
-    """
-    Split typed arguments into argv, keeping quoted runs together
-    (e.g. --name="two words" -> ["--name=two words"]).
-
-    Only double quotes are treated as quoting so a bare apostrophe
-    ("don't") and Windows path backslashes pass through untouched;
-    posix mode's default escape char would otherwise eat backslashes.
-
-    Raises ValueError if a quote is left open.
-    """
-    lexer = shlex.shlex(text, posix=True)
-    lexer.whitespace_split = True
-    lexer.quotes = '"'
-    lexer.escape = ""
-    return list(lexer)
-
-
 class MiseTaskArgsInputHandler(sublime_plugin.TextInputHandler):
     def __init__(self, usage: str):
         self.usage = usage
@@ -82,7 +63,7 @@ class MiseTaskArgsInputHandler(sublime_plugin.TextInputHandler):
         # Refuse an unterminated quote here; by the time the command runs,
         # there is nowhere left to report it but a traceback.
         try:
-            _split_args(text)
+            split_args(text)
         except ValueError:
             return False
         return True
@@ -156,7 +137,7 @@ class MiseRunTaskCommand(sublime_plugin.WindowCommand):
         mise_dir, task_name = task
 
         try:
-            args = _split_args(task_args)
+            args = split_args(task_args)
         except ValueError as e:
             # The palette rejects these in validate(); a keybinding can't.
             self.window.status_message(f"Could not parse task arguments: {e}")

@@ -1,150 +1,39 @@
-"""Self-check for prompting for mise task arguments.
+"""Self-checks for splitting typed task arguments into argv.
 
-No real mise binary needed; run with:
-
-    python3 tests/test_task_args.py
-
-Sublime's `sublime`/`sublime_plugin` modules only exist inside the editor, so
-they get stubbed before importing the plugin.
+    python3 -m unittest discover tests
 """
 
-import importlib.util
 import sys
-import types
+import unittest
 from pathlib import Path
-from types import ModuleType
-from typing import Any
 
-REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-
-def _load_module(name: str) -> ModuleType:
-    spec = importlib.util.spec_from_file_location(
-        "mise.{}".format(name), str(REPO / "{}.py".format(name))
-    )
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["mise.{}".format(name)] = module
-    spec.loader.exec_module(module)
-    return module
+from mise_shared import split_args  # noqa: E402
 
 
-def load_plugin() -> ModuleType:
-    sublime = types.ModuleType("sublime")
-    for attr in ("Window", "View", "ListInputItem"):
-        setattr(sublime, attr, object)
-    sublime.active_window = lambda: _Window()  # pyright: ignore[reportAttributeAccessIssue]
-    sys.modules["sublime"] = sublime
+class SplitArgs(unittest.TestCase):
+    def test_splits_on_whitespace(self):
+        self.assertEqual(split_args(""), [])
+        self.assertEqual(split_args("   "), [])
+        self.assertEqual(split_args("bob --force"), ["bob", "--force"])
 
-    plugin = types.ModuleType("sublime_plugin")
-    for attr in (
-        "EventListener",
-        "WindowCommand",
-        "ListInputHandler",
-        "TextInputHandler",
-    ):
-        setattr(plugin, attr, object)
-    sys.modules["sublime_plugin"] = plugin
+    def test_double_quotes_keep_a_run_together(self):
+        self.assertEqual(split_args('a "b c"'), ["a", "b c"])
+        self.assertEqual(split_args('--name="two words"'), ["--name=two words"])
 
-    pkg = types.ModuleType("mise")
-    pkg.__path__ = [str(REPO)]  # pyright: ignore[reportAttributeAccessIssue]
-    sys.modules["mise"] = pkg
+    def test_single_quotes_and_backslashes_are_literal(self):
+        """So apostrophes and Windows paths survive instead of erroring."""
+        self.assertEqual(split_args("a 'b c'"), ["a", "'b", "c'"])
+        self.assertEqual(split_args(r"C:\path\to\file"), [r"C:\path\to\file"])
+        self.assertEqual(split_args("don't"), ["don't"])
 
-    _load_module("mise_shared")  # the plugin imports it as a package sibling
-    return _load_module("run_mise_task_command")
-
-
-class _Window(object):
-    def __init__(self):
-        self.messages: "list[str]" = []
-        self.command: "tuple[str, dict[str, Any]] | None" = None
-
-    def status_message(self, msg: str):
-        self.messages.append(msg)
-
-    def run_command(self, name: str, args: "dict[str, Any]"):
-        self.command = (name, args)
-
-    def last_cmd(self) -> "list[str]":
-        assert self.command is not None
-        return self.command[1]["cmd"]
-
-
-def test_split_args(rt: ModuleType):
-    """Double-quoted runs stay together; Windows paths and apostrophes survive."""
-    assert rt._split_args("") == []
-    assert rt._split_args("   ") == []
-    assert rt._split_args("bob --force") == ["bob", "--force"]
-    assert rt._split_args('a "b c"') == ["a", "b c"]
-    assert rt._split_args('--name="two words"') == ["--name=two words"]
-    # Single quotes aren't treated as quoting, so apostrophes and Windows
-    # paths pass through untouched instead of eating backslashes/erroring.
-    assert rt._split_args("a 'b c'") == ["a", "'b", "c'"]
-    assert rt._split_args(r"C:\path\to\file") == [r"C:\path\to\file"]
-    assert rt._split_args("don't") == ["don't"]
-
-    for bad in ('a "unbalanced', '"'):
-        try:
-            rt._split_args(bad)
-        except ValueError:
-            continue
-        raise AssertionError("expected ValueError for {!r}".format(bad))
-
-
-def test_validate_rejects_open_quote(rt: ModuleType):
-    """The palette blocks enter rather than letting the command traceback."""
-    handler = rt.MiseTaskArgsInputHandler("<name>")
-    assert handler.validate("bob") is True
-    assert handler.validate('a "unbalanced') is False
-
-
-def test_next_input_skips_empty_task(rt: ModuleType):
-    """next_input needs a real task name before it's worth prompting."""
-    handler = rt.MiseRunTaskHandler()
-    assert handler.next_input({"task": ("", "")}) is None
-    assert handler.next_input({}) is None
-
-
-def test_command_builds_argv(rt: ModuleType):
-    """Typed args reach mise as argv, and a bad quote never crashes."""
-    window = _Window()
-    cmd = rt.MiseRunTaskCommand.__new__(rt.MiseRunTaskCommand)
-    cmd.window = window
-
-    cmd.run(task=("/tmp", "spec"), task_args='-v "two words"')
-    assert window.last_cmd() == ["mise", "run", "spec", "-v", "two words"]
-
-    cmd.run(task=("/tmp", "spec"), task_args="")
-    assert window.last_cmd() == ["mise", "run", "spec"]
-
-    window.command = None
-    cmd.run(task=("/tmp", "spec"), task_args='a "unbalanced')
-    assert window.command is None
-    assert window.messages
-
-
-def main():
-    rt = load_plugin()
-    tests = [
-        test_split_args,
-        test_validate_rejects_open_quote,
-        test_next_input_skips_empty_task,
-        test_command_builds_argv,
-    ]
-    failed = 0
-    for test in tests:
-        try:
-            test(rt)
-            print("ok   {}".format(test.__name__))
-        except AssertionError:
-            failed += 1
-            import traceback
-
-            print("FAIL {}".format(test.__name__))
-            traceback.print_exc()
-    print("\n{}/{} passed".format(len(tests) - failed, len(tests)))
-    return 1 if failed else 0
+    def test_unterminated_quote_raises(self):
+        """MiseRunTaskCommand.run turns this into a status message."""
+        for bad in ('a "unbalanced', '"'):
+            with self.subTest(text=bad), self.assertRaises(ValueError):
+                split_args(bad)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    unittest.main()

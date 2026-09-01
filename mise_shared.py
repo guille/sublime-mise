@@ -1,4 +1,5 @@
 import json
+import shlex
 import subprocess
 from typing import Any, NamedTuple
 
@@ -11,6 +12,24 @@ class MiseJson(NamedTuple):
     data: "Any | None"
     error: "str | None"
     stderr: str = ""
+
+
+def split_args(text: str) -> "list[str]":
+    """
+    Split typed arguments into argv, keeping quoted runs together
+    (e.g. --name="two words" -> ["--name=two words"]).
+
+    Only double quotes are treated as quoting so a bare apostrophe
+    ("don't") and Windows path backslashes pass through untouched;
+    posix mode's default escape char would otherwise eat backslashes.
+
+    Raises ValueError if a quote is left open.
+    """
+    lexer = shlex.shlex(text, posix=True)
+    lexer.whitespace_split = True
+    lexer.quotes = '"'
+    lexer.escape = ""
+    return list(lexer)
 
 
 def run_mise_json(cmd: "list[str]", cwd: str) -> MiseJson:
