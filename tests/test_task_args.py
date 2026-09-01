@@ -12,11 +12,24 @@ import importlib.util
 import sys
 import types
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
 
 
-def load_plugin():
+def _load_module(name: str) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "mise.{}".format(name), str(REPO / "{}.py".format(name))
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["mise.{}".format(name)] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_plugin() -> ModuleType:
     sublime = types.ModuleType("sublime")
     for attr in ("Window", "View", "ListInputItem"):
         setattr(sublime, attr, object)
@@ -37,30 +50,27 @@ def load_plugin():
     pkg.__path__ = [str(REPO)]  # pyright: ignore[reportAttributeAccessIssue]
     sys.modules["mise"] = pkg
 
-    module = None
-    for name in ("mise_shared", "run_mise_task_command"):
-        spec = importlib.util.spec_from_file_location(
-            "mise.{}".format(name), str(REPO / "{}.py".format(name))
-        )
-        assert spec is not None and spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        sys.modules["mise.{}".format(name)] = module
-        spec.loader.exec_module(module)
-    return module
+    _load_module("mise_shared")  # the plugin imports it as a package sibling
+    return _load_module("run_mise_task_command")
 
 
 class _Window(object):
     def __init__(self):
-        self.messages = []
+        self.messages: "list[str]" = []
+        self.command: "tuple[str, dict[str, Any]] | None" = None
 
-    def status_message(self, msg):
+    def status_message(self, msg: str):
         self.messages.append(msg)
 
-    def run_command(self, name, args):
+    def run_command(self, name: str, args: "dict[str, Any]"):
         self.command = (name, args)
 
+    def last_cmd(self) -> "list[str]":
+        assert self.command is not None
+        return self.command[1]["cmd"]
 
-def test_split_args(rt):
+
+def test_split_args(rt: ModuleType):
     """Double-quoted runs stay together; Windows paths and apostrophes survive."""
     assert rt._split_args("") == []
     assert rt._split_args("   ") == []
@@ -81,31 +91,31 @@ def test_split_args(rt):
         raise AssertionError("expected ValueError for {!r}".format(bad))
 
 
-def test_validate_rejects_open_quote(rt):
+def test_validate_rejects_open_quote(rt: ModuleType):
     """The palette blocks enter rather than letting the command traceback."""
     handler = rt.MiseTaskArgsInputHandler("<name>")
     assert handler.validate("bob") is True
     assert handler.validate('a "unbalanced') is False
 
 
-def test_next_input_skips_empty_task(rt):
+def test_next_input_skips_empty_task(rt: ModuleType):
     """next_input needs a real task name before it's worth prompting."""
     handler = rt.MiseRunTaskHandler()
     assert handler.next_input({"task": ("", "")}) is None
     assert handler.next_input({}) is None
 
 
-def test_command_builds_argv(rt):
+def test_command_builds_argv(rt: ModuleType):
     """Typed args reach mise as argv, and a bad quote never crashes."""
     window = _Window()
     cmd = rt.MiseRunTaskCommand.__new__(rt.MiseRunTaskCommand)
     cmd.window = window
 
     cmd.run(task=("/tmp", "spec"), task_args='-v "two words"')
-    assert window.command[1]["cmd"] == ["mise", "run", "spec", "-v", "two words"]
+    assert window.last_cmd() == ["mise", "run", "spec", "-v", "two words"]
 
     cmd.run(task=("/tmp", "spec"), task_args="")
-    assert window.command[1]["cmd"] == ["mise", "run", "spec"]
+    assert window.last_cmd() == ["mise", "run", "spec"]
 
     window.command = None
     cmd.run(task=("/tmp", "spec"), task_args='a "unbalanced')

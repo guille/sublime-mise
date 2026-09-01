@@ -1,7 +1,7 @@
 import html
 import pathlib
 import shlex
-from typing import Any
+from typing import Any, cast
 
 import sublime
 import sublime_plugin
@@ -37,7 +37,10 @@ def _task_usage(mise_dir: str, task_name: str) -> str:
     since this is a best-effort convenience, not the primary task run path.
     """
     result = run_mise_json(["mise", "tasks", "info", task_name, "--json"], mise_dir)
-    return (result.data or {}).get("usage_spec", {}).get("cmd", {}).get("usage", "")
+    spec = cast("dict[str, Any]", result.data or {}).get("usage_spec")
+    cmd = cast("dict[str, Any]", spec or {}).get("cmd")
+    usage = cast("dict[str, Any]", cmd or {}).get("usage")
+    return usage if isinstance(usage, str) else ""
 
 
 def _split_args(text: str) -> "list[str]":
@@ -71,7 +74,11 @@ class MiseTaskArgsInputHandler(sublime_plugin.TextInputHandler):
     def description(self, text: str):
         return text or "(no args)"
 
-    def validate(self, text: str):
+    def validate(
+        self,
+        text: str,
+        event: "dict[str, Any] | None" = None,  # pyright: ignore[reportUnusedParameter]
+    ):
         # Refuse an unterminated quote here; by the time the command runs,
         # there is nowhere left to report it but a traceback.
         try:
