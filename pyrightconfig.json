@@ -1,8 +1,7 @@
 {
   // TODO: ST >4200 changes to Python 3.14
   "extraPaths": [
-    "/opt/sublime_text/Lib/python3.8.zip",
-    "/opt/sublime_text/Lib/python38",
+    "/opt/sublime_text/Lib/python314",
     "/opt/sublime_text/Lib/python3",
     "/opt/sublime_text/Packages",
   ],

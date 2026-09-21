@@ -134,7 +134,12 @@ class MiseRunTaskHandler(sublime_plugin.ListInputHandler):
 
 
 class MiseRunTaskCommand(sublime_plugin.WindowCommand):
-    def run(self, task: "tuple[str, str]" = ("", ""), task_args: str = ""):
+    def run(
+        self,
+        task: "tuple[str, str]" = ("", ""),
+        task_args: str = "",
+        **_: "sublime.Value",
+    ):
         if not task or not task[1]:
             return
 
@@ -147,8 +152,8 @@ class MiseRunTaskCommand(sublime_plugin.WindowCommand):
             self.window.status_message(f"Could not parse task arguments: {e}")
             return
 
-        exec_args: sublime.CommandArgs = {
-            "cmd": ["mise", "run", task_name] + args,
+        exec_args: dict[str, sublime.Value] = {
+            "cmd": ["mise", "run", task_name, *args],
             "working_dir": mise_dir,
             "env": {"NO_COLOR": "1"},
             "syntax": "Packages/Mise/Mise Build.sublime-syntax",
@@ -165,7 +170,7 @@ class MiseRunTaskCommand(sublime_plugin.WindowCommand):
 
 
 class MiseTrustCommand(sublime_plugin.WindowCommand):
-    def run(self):
+    def run(self, **_: "sublime.Value"):
         view = self.window.active_view()
         if view is None:
             self.window.status_message("No view is active")
@@ -173,7 +178,7 @@ class MiseTrustCommand(sublime_plugin.WindowCommand):
 
         mise_dir = _find_best_dir(view, self.window)
 
-        exec_args: sublime.CommandArgs = {
+        exec_args: dict[str, sublime.Value] = {
             "cmd": ["mise", "trust"],
             "working_dir": mise_dir,
             "env": {"NO_COLOR": "1"},
